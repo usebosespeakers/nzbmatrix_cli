@@ -1,7 +1,7 @@
 nzbmatrix_cli
 =============
 
-![Alt text](/nzbmatrix1.png "Home Screen")
+![Alt text](/usebosespeakers/nzbmatrix_cli/nzbmatrix1.png "Home Screen")
 
 An attempt at a perl CLI nzbmatrix download using nzbmatrix API 
 
