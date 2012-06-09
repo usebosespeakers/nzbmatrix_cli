@@ -13,9 +13,8 @@ Sorry the code is messy and is not well commented
 
 To run the program make it executable (chmod +x nzbmatrix) then use ./nzbmatrix_cli
 
-Alternatively you can put it in one of your path folders e.g. /usr/local/bin and then run it from anywhere
-
-with nzbmatrix
+Alternatively you can put it in one of your path folders e.g. /usr/local/bin and 
+then run it from anywhere with nzbmatrix_cli
 
 
 Main Shortcut Keys:
