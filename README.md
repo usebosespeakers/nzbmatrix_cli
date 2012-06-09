@@ -1,6 +1,8 @@
 nzbmatrix_cli
 =============
 
+![Alt text](/nzbmatrix1.png "Home Screen")
+
 An attempt at a perl CLI nzbmatrix download using nzbmatrix API 
 
 Designed for Linux in mind; might be able to use it in windows with some tinkering
