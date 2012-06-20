@@ -1,7 +1,7 @@
 nzbmatrix_cli
 =============
 
-![Alt text](/usebosespeakers/nzbmatrix_cli/blob/master/nzb3_1.png "Version 3")
+[![NZB Matrix 3](https://github.com/usebosespeakers/nzbmatrix_cli/blob/master/nzb3_1.png?raw=true)]
 
 An attempt at a perl CLI nzbmatrix download using nzbmatrix API 
 
