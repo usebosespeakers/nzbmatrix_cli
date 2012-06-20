@@ -18,7 +18,7 @@ To run the program make it executable (chmod +x nzbmatrix) then use ./nzbmatrix_
 Alternatively you can put it in one of your path folders e.g. /usr/local/bin and 
 then run it from anywhere with nzbmatrix_cli
 
-
+#Updated
 Main Shortcut Keys:
 
 pressing s from the homes creen takes you to the search window
@@ -29,5 +29,3 @@ press spaces allows you to select multiple downloads
 
 enter or d will download the files for you
 
-#Can only do one download at a time, may try to change this in the future
-UPDATED
