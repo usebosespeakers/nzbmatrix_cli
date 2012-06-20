@@ -1,7 +1,7 @@
 nzbmatrix_cli
 =============
 
-[![NZB Matrix 3](https://github.com/usebosespeakers/nzbmatrix_cli/blob/master/nzb3_1.png?raw=true)]
+![NZB Matrix 3](https://github.com/usebosespeakers/nzbmatrix_cli/blob/master/nzb3_1.png?raw=true)
 
 An attempt at a perl CLI nzbmatrix download using nzbmatrix API 
 
@@ -21,12 +21,13 @@ then run it from anywhere with nzbmatrix_cli
 
 Main Shortcut Keys:
 
-ctrl + s = search
+pressing s from the homes creen takes you to the search window
 
-ctrl + d = download
+arrow keys move up and down the search results window
 
-ctrl + x = menu
+press spaces allows you to select multiple downloads
 
-When entering the download number you may use the search result # i.e. 1 or 6 does not have to be the whole ID but it could be
+enter or d will download the files for you
 
-Can only do one download at a time, may try to change this in the future
+#Can only do one download at a time, may try to change this in the future
+UPDATED
