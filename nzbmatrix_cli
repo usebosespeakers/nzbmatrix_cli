@@ -1,14 +1,15 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 
 #VARIABLES TO CHANGE
 
-my $username = "REPLACE"; #change me
-my $apikey = "REPLACE"; #change me
-my $searchlimit = "REPLACE"; #change me
-my $DownloadFolder = "/home/user/Downloads";  #change me
-my $TrimSearchResults = "true"; #optional true or false
+my $username = "USERNAME HERE";
+my $apikey = "KEY HERE";
+my $searchlimit = "50"; #50 max according to api
+my $DownloadFolder = "/home/username/Downloads"; # where do you want to save the NZB
+my $TrimSearchResults = "true"; #doesn't have any affect with new version
 
 use Curses::UI;
+use Curses qw(KEY_ENTER);
 
 my $cui = new Curses::UI( -color_support => 1 ,
 			  -clear_on_exit => 1
@@ -19,61 +20,199 @@ my $cui = new Curses::UI( -color_support => 1 ,
 my @menu = (
       { -label => 'File', 
           -submenu => [
-      { -label => 'Exit      ^Q', -value => \&quit  }
+      { -label => 'Home', -value => \&home  },
+
+      { -label => 'Exit      ctrl+q', -value => \&quit  }
                         ]
+
            },      { -label => 'Search',
           -submenu => [
-      { -label => 'NZB Matrix Search      ^S', -value => \&search  }
+      { -label => 'NZB Matrix Search      ctrl+f', -value => \&search  }
                         ]
 },
 
-      { -label => 'Download',
+#      { -label => 'Download',
+ #         -submenu => [
+  #    { -label => 'By ID      ^W', -value => \&download }
+ #                       ]
+#},
+
+#sabcures.py
+      { -label => 'Sabnzbd+',
           -submenu => [
-      { -label => 'By ID      ^W', -value => \&download }
+      { -label => 'sabcurses.py    ctrl+p', -value => \&sabcurses  } 
                         ]
 },
+
 
       { -label => 'Help',
           -submenu => [
-      { -label => 'Help      ^H', -value => \&help  }
+      { -label => 'Help', -value => \&help  }
                         ]
 },
 
         );
 
+#top menu
 my $menu = $cui->add(
          'menu','Menubar', 
          -menu => \@menu,
-#         -fg  => "black",
+#        -fg  => "black",
           );
 
 
 #main window
-my $win1 = $cui->add(
-             'win1', 'Window',
+my $MainWindow = $cui->add(
+             'main', 'Window',
+             -border => 2,
+             -y    => 1,
+#	     -bg => 'black',
+	-fg => 'yellow',
+             -bfg  => 'blue',
+#	     -releasefocus =>1,
+         );
+#Search Results window
+my $SearchResultsWindow = $cui->add(
+             'searchresults', 'Window',
              -border => 2,
              -y    => 1,
              -bfg  => 'blue',
+#	     -releasefocus =>1,
          );
 
-#search window
-my $win2 = $cui->add(
-             'win2', 'Window',
-             -border => 2,
-             -y    => 1,
+#Info Window
+my $InfoWindow = $cui->add(
+             'info', 'Window',
+             -border => 3,
+	-padleft=>4,
+	-padright=>4,
+             -y    => 7,
+		-padbottom=>4,
              -bfg  => 'red',
+#	     -releasefocus =>1,
          );
 
-#download window
-my $win3 = $cui->add( 
-             'win3', 'Window',
+
+
+
+#Download Window
+my $DownloadWindow = $cui->add(
+             'download', 'Window',
              -border => 2,
              -y    => 1,
              -bfg  => 'blue',
+#	     -releasefocus =>1,
+         );
+
+#Download window textviewer
+
+
+#Logo
+my $LogoWidget = $MainWindow->add( 
+        'logo', 'TextViewer',
+#	-focusable => 1,
+#	-vscrollbar => 1,
+        -text => "  Welcome to NZB Matrix Search!\n"
+	. "    _   _     _____    ____  \n "
+	. "  | \\ |\"|   |\"_  /uU | __\")u \n"
+	. "  <|  \\| |>  U / //   \|  _ \/ \n"
+. "  U| |\\  |u   \/ /_    | |_) | \n"
+. "   |_| \\_|   /____|   |____/  \n"
+	. "   ||   \\\\,-._//<<,- _|| \\\\_ \n "
+	. "  (_\")  (_/(__) (_/(__) (__) "
+	. "\n\n Use Ctrl+x to access the top menu"
+	
+);
+
+my $HelpWindow = $cui->add(
+             'help', 'Window',
+             -border => 2,
+             -y    => 1,
+             -bfg  => 'blue',
+#	     -releasefocus =>1,
          );
 
 
+my $HelpTextWidget = $HelpWindow->add(
+        'helptext', 'TextViewer',
+        -vscrollbar => 1,
+	-wrapping   => 1,
+#        -text => "\nSearch:"
+);
 
+
+#Search Window
+my $SearchWindow = $cui->add(
+             'search', 'Window',
+             -border => 2,
+             -y    => 1,
+             -bfg  => 'blue',
+#	     -releasefocus =>1,
+         );
+
+#search entry widget for the search window
+my $SearchEntryWidget = $SearchWindow->add(
+        'searchentry', 'TextEntry',
+#        -homeblur => 1,
+#	-onblur => \&search2,
+	-x => 8,
+	-padright => 10,
+#	-focusable => 1,
+	-height => 0,
+	-border => 1
+);
+
+#search text widget  should just say "Search: " for the search window
+my $SearchTextWidget = $SearchWindow->add(
+        'searchtext', 'TextViewer',
+#       -vscrollbar => 1,
+	-wrapping   => 1,	
+	-focusable => 0,
+	-height => 2,
+        -text => "\nSearch:"
+);
+
+
+
+my $SearchResultsList = $SearchWindow->add(
+        'resultslist', 'Listbox',
+#        -values    => ["No Results"],
+        -multi     => 1,
+	-focusable => 1,
+	-htmltext => 1,
+	-onselchange => \&UpdateStatus,
+	-y => 3,
+	-height => 20,
+        -vscrollbar => 1,
+	-wraparound => 1,
+	-border => 1,
+#	-padbottom => 10,
+    );
+
+#INFO WINDOW INFORMATION
+my $InfoTextWidget = $InfoWindow->add(
+        'infotext', 'TextViewer',
+       -vscrollbar => 1,
+#	-wrapping   => 1,	
+	-focusable => 1,
+#        -text => "\nSearch:"
+);
+
+
+my $NumberSelected = "Currently Selected: 0\n";
+my $DownloadStatus = "<<<NZB Download History>>>\n\n"; #make a new global for downloading recordkeeping
+
+my $DownloadTexViewer = $SearchWindow->add( 
+        'downloadtextdownloading', 'TextViewer',
+	-focusable => 1,
+	-vscrollbar => 1,
+#        -text => $NumberSelected.$DownloadStatus,
+	-border => 1,
+	-padtop => $SearchResultsList->height()+3,
+);
+
+
+#deleted search and download windows
 
 #my $win = $cui->add('window_id', 'Window');
 
@@ -82,39 +221,592 @@ my $win3 = $cui->add(
   # 	);
 
 
-my $textviewer = $win1->add( 
-        'mytextviewer', 'TextViewer',
-	-focusable => 1,
-	-vscrollbar => 1,
-        -text => "  Welcome to NZB Matrix Search!\n"
-	. "    _   _     _____    ____  \n "
-	. "  | \\ |\"|   |\"_  /uU | __\")u \n"
-	. "  <|  \\| |>  U / //   \|  _ \/ \n"
-	. "  U| |\\  |u   \/ /_    | |_) | \n"
-	. "   |_| \\_|   /____|   |____/  \n"
-	. "   ||   \\\\,-._//<<,- _|| \\\\_ \n "
-	. "  (_\")  (_/(__) (_/(__) (__) "
-	. "\n\n Use Ctrl+x to access the top menu"
+
+
+
+
+
+#        my $texteditor = $win1->add("text", "TextEditor",
+ #                                -text => "Here is some text\n"
+  #                                      . "And some more");
+
+
+my @arrayofids; #global issue so it's here
+
+
+
+
+$cui->set_binding(sub {$menu->focus()}, "\cX");
+$cui->set_binding( \&quit, "\cQ");
+$cui->set_binding( \&sdtv, "\cT");
+
+#$cui->set_binding(sub {$textviewer->focus()}, "\x1b");
+#$cui->set_binding( \&quit, "\cC");
+#$cui->set_binding( \&download, "\cW");
+#$cui->set_binding( \&download, "330");
+
+#$textviewer->clear_binding('delete-character' );
+#$textviewer2->clear_binding( 'delete-character' );
+#$textentry2->clear_binding( 'delete-character' );
+#$textviewer3->clear_binding( 'delete-character');
+#$textentry3->clear_binding( 'delete-character' );
+#$cui->clear_binding( 'delete-character' );
+
+#$textviewer2->set_binding( \&download, "d");
+#$textviewer->set_binding( \&download, "\cD");
+
+#$textviewer2->set_binding( \&download, "1");
+
+$MainWindow->set_binding( \&home, "h");
+$MainWindow->set_binding( \&help, "?");
+$MainWindow->set_binding( \&search, "s");
+$MainWindow->set_binding( \&quit, "q");
+#$SearchWindow->set_binding( \&search2, KEY_ENTER() );
+$cui->set_binding( \&search, "\cF");
+$cui->set_binding( \&sabcurses, "\cP"); #open up sab M for monitor ctrl +m
+#$cui->set_binding( \&sabcli, "c\L"); #open up sab M for monitor ctrl +m
+$SearchWindow->set_binding( \&quit, "\cQ");
+
+$SearchResultsWindow->set_binding( \&home, "h");
+$SearchResultsWindow->set_binding( \&search, "s");
+$SearchResultsWindow->set_binding( \&quit, "q");
+$SearchResultsList->set_binding( \&download, "d");
+$SearchResultsList->set_binding( \&nzbinfo, "i");
+$SearchResultsList->set_binding( \&download, KEY_ENTER() );
+$SearchEntryWidget->set_binding( \&search2, KEY_ENTER() );
+
+$InfoWindow->set_binding( sub { search(); $SearchResultsList->focus(); }, "i");
+$InfoWindow->set_binding( sub { search(); $SearchResultsList->focus(); }, "q");
+
+
+$DownloadWindow->set_binding( \&home, "h");
+$DownloadWindow->set_binding( \&search, "s");
+$DownloadWindow->set_binding( \&quit, "q");
+$DownloadWindow->clear_binding('d');
+
+
+$HelpWindow->set_binding( \&home, "h");
+$HelpWindow->set_binding( \&search, "s");
+$HelpWindow->set_binding( \&quit, "q");
+
+sub home {
+
+$MainWindow->focus();
+
+}
+sub nzbinfo {
+
+
+$ActiveNzb = $SearchResultsList->get_active_value();
+
+my $temp = $ActiveNzb;
+
+$temp =~ /(.*?)\./;
 	
-);
+my $index = $1;
 
-my $textentry2 = $win2->add(
-        'mytextentry2', 'TextEntry',
-        -homeblur => 1,
-	-onblur => \&search2,
-	-x => 8,
-	-padright => 5,
-	-focusable => 1,
-	-border => 1
-);
+my $infourl = "'https://api.nzbmatrix.com/v1.1/details.php?id="."$arrayofids[$index]"."&username="."$username"."&apikey=".$apikey."'";
+my $idinfo = `wget -qO- $infourl`;
 
 
-my $textviewer2 = $win2->add(
-        'mytextviewer2', 'TextViewer',
-        -vscrollbar => 1,
-	-wrapping   => 1,
-        -text => "\nSearch:"
-);
+
+$InfoWindow->focus();
+$InfoTextWidget->text($idinfo);
+$InfoTextWidget->draw();
+$InfoTextWidget->focus();
+
+
+
+}
+
+
+sub sabcurses {
+
+$cui->leave_curses();
+system("clear; sab; clear");
+$cui->reset_curses();
+
+}
+
+
+sub sabcli {
+
+$cui->leave_curses();
+system("clear; sabcli.py; sleep 7; clear");
+$cui->reset_curses();
+
+}
+
+
+
+########$textviewer->focus();
+
+
+sub clearscreen
+{
+	system('clear');
+}
+
+
+sub quit
+{
+
+	#print "\nQuitting... \n";
+	$cui->leave_curses();
+	#ReadMode 0;
+	clearscreen();
+	exit;
+
+}
+
+
+sub search
+{
+
+	UpdateStatus();
+	$SearchEntryWidget->text(""); #make it empty each time it is called
+####	$SearchWindow->focus();
+#	$SearchTextWidet->text("\n Search:");
+	$SearchEntryWidget->focus();
+#	$textentry2->lose_focus();
+}
+
+
+
+
+sub search2 #after the search has been made
+{
+
+	#$textviewer->text("Enter Search Term: ");
+        #$textviewer->draw();
+	#exit(1);	
+	#get input for search
+#	ReadMode('normal'); 
+	my $searchterm = $SearchEntryWidget->get();
+	chomp ($searchterm);
+
+	
+
+####### PUT SOMETHING HERE maybe "searching...."
+
+	
+
+
+
+
+#	if($searchterm eq 'q'){&main;}
+#	print "Searching...\n";
+	$searchterm =~ s/ /%20/g;
+	my $searchurl = "'https://api.nzbmatrix.com/v1.1/search.php?search="."$searchterm"."&num="."$searchlimit"."&username=".$username."&apikey=".$apikey."'";
+	#my $results = `wget -qO- $searchurl`;	
+	#print "$results";
+
+
+
+####        $textviewer2->text("Searching...");
+#####        $textviewer2->draw();
+        
+     #####   $textviewer2->text("\nSearch:");
+
+	my $results = `wget -qO- $searchurl`;
+	#if($TrimSearchResults eq 'true'){$results =~ s/CATEGORY(.*?)\|//mgsi}
+	if($results =~ /A/gi){my $resultsExist = 'false';}
+#	my $factor = 10000000;
+#	my $gb = " GB";
+#	my $size = "SIZE: ";
+#	$results =~ s/SIZE:(.*?)\;/$size.$1\/$factor.$gb/ge;
+	my $counter = 0;
+	my @arrayofnzbs = split('NZBID', $results);
+	my @arrayofdownloads;
+	$results = ""; #empty it so we can fill it with new altered results
+
+	shift(@arrayofnzbs); # so that the first blank item is gone! 
+
+	foreach $nzb (@arrayofnzbs){
+		my $temp = $nzb;
+		
+		$temp =~ s/NZBNAME:(.*?)\;/$1/;     #find name
+		my $name = $1;
+		$temp = $nzb;				#reset temp
+
+		$temp =~ s/SIZE:(.*?)\;/$1/;		#find size
+		my $size = $1/1048576;			#convert to MB
+		$size = $size." MB";
+		$temp = $nzb;				#reset temp
+
+		$temp =~ s/USENET_DATE:(.*?)\;/$1/;		#find usenet date
+		my $date = $1;				#convert to MB
+		$temp = $nzb;				#reset temp
+
+		$temp =~ s/CATEGORY:(.*?)\;/$1/;		#find usenet date
+		my $category = $1;				#convert to MB
+		$temp = $nzb;				#reset temp
+	
+		
+		$temp =~ s/(.*?)\;/HAHA/;		#find usenet NZB ID # so download can happen
+		my $nzbid = $1;
+		$nzbid =~ s/://;
+		#$temp =~ $nzb;				#reset $nzb
+
+
+		my $id = $counter + 1;
+
+		$arrayofids[$id] = $nzbid;
+
+
+		$arrayofdownloads[$counter] = "$id. \t <bold>$name</bold> <<$size>> <bold><<$category>></bold> <dim><<$date>></dim>";
+#		$arrayofdownloads[$counter] = "$id".". \t"."<bold>$name</bold> <<$size>> <<$date>>";
+				
+		$counter++;
+
+#		if($counter != 0){
+#			
+#		}else{
+#			$counter++;
+#		}
+
+	}
+
+#	if ($resultsExist eq 'false') { $results = "No Results!";}
+	
+#my $r = $cui->dialog(
+ #    -title => "Widget",
+ #   -message => "Choose widget:",
+ #    -buttons => [map {{-label=>$_}} @arrayofnzbs],
+#);
+
+$SearchResultsList->values(@arrayofdownloads);
+$SearchResultsList->clear_selection();
+$SearchResultsList->draw();
+$SearchResultsList->focus();
+
+}
+
+
+
+sub download {
+
+my @ToDownload = $SearchResultsList->get();
+#my $downloads = "Downloading Selected NZB's...\n\n";
+my $downloads = "";
+
+$DownloadTexViewer->text("Downloading $NumberSelected NZB's...\n\n"); 
+$DownloadTexViewer->draw();
+
+#$DownloadTextViewer->focus();
+
+
+#$DownloadTextViewer->draw();
+#$DownloadTextViewer->text($downloads);
+
+
+
+my $idcounter = 1;
+
+foreach $download (@ToDownload){
+
+	my $temp = $download;
+
+	$temp =~ /(.*?)\./;
+	
+	my $index = $1;
+
+	my $infourl = "'https://api.nzbmatrix.com/v1.1/details.php?id="."$arrayofids[$index]"."&username="."$username"."&apikey=".$apikey."'";
+	my $idinfo = `wget -qO- $infourl`;
+
+	if($idinfo =~ /NZBNAME/i) {
+		
+                $idinfo =~ s/NZBNAME:(.*);/$1/gi;
+                my $filename = $1;
+                my $filepath = "'$DownloadFolder"."/$filename".".nzb"."'";
+                my $downloadurl = "'https://api.nzbmatrix.com/v1.1/download.php?id="."$arrayofids[$index]"."&username="."$username"."&apikey=".$apikey."'";
+		system("wget -qO $filepath $downloadurl");
+		
+		$downloads = "$downloads"."$filename ---> Complete\n";
+		$DownloadTexViewer->text("Downloading $NumberSelected NZB's...\n\n".$downloads);  #use the download complete / failed list/string to show if they worked or not
+				
+       }else {
+		
+		$downloads = "$downloads"."Download Number: $index ---> FAILED\n";
+		$DownloadTexViewer->text("Downloading $NumberSelected NZB's...\n\n".$downloads);  #use the download complete / failed list/string to show if they worked or not
+
+	}
+
+		$DownloadTexViewer->draw();	#redraw it on the screen
+
+	$idcounter++;
+
+}
+
+
+#$DownloadStatus = $DownloadStatus.$downloads."\n ALL NZB's COMPLETE";
+
+$DownloadStatus = $DownloadStatus.$downloads;
+
+UpdateStatus(); # will also update with $DownloadStatus!
+
+#$DownloadTexViewer->text($NumberSelected.$DownloadStatus);  #use the download complete / failed list/string to show if they worked or not
+#$DownloadTexViewer->draw();	#redraw it on the screen
+
+#$DownloadWindow->draw();
+#$DownloadTexViewer->draw();	#redraw it on the screen
+
+
+
+
+#Download window textviewer
+#my $DownloadTexViewer = $DownloadWindow->add( 
+#        'downloadtextcomplete', 'TextViewer',
+#	-focusable => 1,
+#	-vscrollbar => 1,
+#        -text => $downloads,
+#);
+
+#$DownloadTextViewer->text("test");
+
+#$DownloadWindow->delete('downloadtext');
+
+
+
+#$DownloadTexViewer->focus();
+
+
+
+
+
+#$DownloadTextViewer->text("Complete!");
+#$DownloadTextViewer->draw(0);\
+#$DownloadWindow->draw(0);
+
+
+}
+
+
+sub sdtv {
+
+#	my $searchterm = $SearchEntryWidget->get();
+#	chomp ($searchterm);
+	
+
+####### PUT SOMETHING HERE maybe "searching...."
+
+
+#	if($searchterm eq 'q'){&main;}
+#	print "Searching...\n";
+#	$searchterm =~ s/ /%20/g; NOT NEDDED here for sdtv
+	my $searchurl = "'https://api.nzbmatrix.com/v1.1/search.php?search=HDTV"."&catid=6"."&num="."$searchlimit"."&username=".$username."&apikey=".$apikey."'";
+	#my $results = `wget -qO- $searchurl`;	
+	#print "$results";
+
+
+
+####        $textviewer2->text("Searching...");
+#####        $textviewer2->draw();
+        
+     #####   $textviewer2->text("\nSearch:");
+
+	my $results = `wget -qO- $searchurl`;
+	#if($TrimSearchResults eq 'true'){$results =~ s/CATEGORY(.*?)\|//mgsi}
+	if($results =~ /A/gi){my $resultsExist = 'false';}
+#	my $factor = 10000000;
+#	my $gb = " GB";
+#	my $size = "SIZE: ";
+#	$results =~ s/SIZE:(.*?)\;/$size.$1\/$factor.$gb/ge;
+	my $counter = 0;
+	my @arrayofnzbs = split('NZBID', $results);
+	my @arrayofdownloads;
+	$results = ""; #empty it so we can fill it with new altered results
+
+	shift(@arrayofnzbs); # so that the first blank item is gone! 
+
+	foreach $nzb (@arrayofnzbs){
+		my $temp = $nzb;
+		
+		$temp =~ s/NZBNAME:(.*?)\;/$1/;     #find name
+		my $name = $1;
+		$temp = $nzb;				#reset temp
+
+		$temp =~ s/SIZE:(.*?)\;/$1/;		#find size
+		my $size = $1/1048576;			#convert to MB
+		$size = $size." MB";
+		$temp = $nzb;				#reset temp
+
+		$temp =~ s/USENET_DATE:(.*?)\;/$1/;		#find usenet date
+		my $date = $1;				#convert to MB
+		$temp = $nzb;				#reset temp
+
+		$temp =~ s/CATEGORY:(.*?)\;/$1/;		#find usenet date
+		my $category = $1;				#convert to MB
+		$temp = $nzb;				#reset temp
+	
+		
+		$temp =~ s/(.*?)\;/HAHA/;		#find usenet NZB ID # so download can happen
+		my $nzbid = $1;
+		$nzbid =~ s/://;
+		#$temp =~ $nzb;				#reset $nzb
+
+
+		my $id = $counter + 1;
+
+		$arrayofids[$id] = $nzbid;
+
+
+		$arrayofdownloads[$counter] = "$id. \t <bold>$name</bold> <<$size>> <bold><<$category>></bold> <dim><<$date>></dim>";
+#		$arrayofdownloads[$counter] = "$id".". \t"."<bold>$name</bold> <<$size>> <<$date>>";
+		
+		
+		$counter++;
+
+#		if($counter != 0){
+#			
+#		}else{
+#			$counter++;
+#		}
+
+	}
+
+#	if ($resultsExist eq 'false') { $results = "No Results!";}
+	
+#my $r = $cui->dialog(
+ #    -title => "Widget",
+ #   -message => "Choose widget:",
+ #    -buttons => [map {{-label=>$_}} @arrayofnzbs],
+#);
+
+$SearchResultsList->values(@arrayofdownloads);
+$SearchResultsList->clear_selection();
+$SearchResultsWindow->focus();
+
+
+
+
+}
+
+
+
+sub GetAccountInfo() {
+
+#https://api.nzbmatrix.com/v1.1/account.php?username=kyri16&apikey=b7b58ee9b21d02fdec817
+#USERNAME:kyriakos816; USERID:778854; API_DAILY_RATE:66; API_DAILY_DOWNLOAD:3;
+#https://api.nzbmatrix.com/v1.1/account.php?username=ky16&apikey=b72b3ce364d91b5dec817
+
+
+	my $accounturl = "'https://api.nzbmatrix.com/v1.1/account.php?username=$username&apikey=$apikey'";
+	my $accountraw = `wget -qO- $accounturl`;
+	my $AccountStatus = "Server Not Found";
+	if ($accountraw =~ /USERNAME/){
+
+		$accountraw = ~ s/DOWNLOAD:(.*?)\;//;
+		my $DownloadRate = $1;
+
+		$accountraw = ~ s/API_DAILY_RATE:(.*?)\;//;
+		my $ApiRate = $1;
+
+		$AccountStatus = "API Rate: $ApiRate Download Rate: $DownloadRate";
+
+	}elsif ( $accountraw =~ /error/gi ){
+
+		$AccountStatus = "API Search Limit Error!";
+
+	}
+
+#	return $accountraw;
+	return $AccountStatus;
+
+
+}
+
+sub UpdateStatus {
+
+
+my @ItemValues = $SearchResultsList->get();
+my $SelectedItems = @ItemValues;
+my $QueueSize = 0;
+
+
+if ($SelectedItems >= 1){
+
+$NumberSelected = $SelectedItems;
+
+
+}
+else{
+
+$NumberSelected = 0; #"it was undefined"
+
+}
+
+my $item = "";
+
+foreach $item (@ItemValues){
+
+	$item =~ s/<<(.*?) MB/$1/;
+
+	$QueueSize = $QueueSize + $1;
+
+}
+
+##$AccountInfo = GetAccountInfo();
+
+$DownloadTexViewer->text("Currently Selected: "."$NumberSelected\nQueue Size: $QueueSize MB\n".$DownloadStatus);  #use the download complete / failed list/string to show if they worked or not
+$DownloadTexViewer->draw();	#redraw it on the screen
+}
+
+
+sub help {
+
+
+$helpmenu = "<<<<< HELP MENU >>>>>\n\n"."\ts = search\n".
+"\tctrl + p = open sabcurses.py use ctrl+c to return to Nzbmatrix2 \n".
+"\tq (when not in search window)  or ctrl + q (anytime) = quit\n".
+"\tspace = select items\n".
+"\td or enter = download slected files\n";
+
+$HelpWindow->focus();
+
+$HelpTextWidget->text($helpmenu);
+$HelpTextWidget->draw();
+
+
+
+}
+
+
+home();
+
+$cui->mainloop();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=begin GHOSTCODE
+
+
+
 
 my $textentry3 = $win3->add(
         'mytextentry3', 'TextEntry',
@@ -138,48 +830,6 @@ my $textviewer3 = $win3->add(
 
 
 
-
-
-
-#        my $texteditor = $win1->add("text", "TextEditor",
- #                                -text => "Here is some text\n"
-  #                                      . "And some more");
-
-
-	my @arrayofids; #global issue so it's here
-
-
-
-
-$cui->set_binding(sub {$menu->focus()}, "\cX");
-$cui->set_binding(sub {$textviewer->focus()}, "\x1b");
-$cui->set_binding( \&quit, "\cC");
-$cui->set_binding( \&download, "\cW");
-$cui->set_binding( \&download, "330");
-
-$textviewer->clear_binding('delete-character' );
-$textviewer2->clear_binding( 'delete-character' );
-$textentry2->clear_binding( 'delete-character' );
-$textviewer3->clear_binding( 'delete-character');
-$textentry3->clear_binding( 'delete-character' );
-$cui->clear_binding( 'delete-character' );
-
-$textviewer2->set_binding( \&download, "d");
-$textviewer->set_binding( \&download, "\cD");
-
-$textviewer2->set_binding( \&download, "1");
-
-
-$cui->set_binding( \&quit, "\cQ");
-$cui->set_binding( \&search,"\cS");
-$cui->set_binding( \&test,"\cT");
-$win1->focus();
-$textviewer->focus();
-
-
-
-
-$cui->mainloop();
 
 
 
@@ -270,13 +920,6 @@ sub help
 
 }
 
-sub search
-{
-	$textviewer2->text("\n Search:");
-	$textentry2->text("");
-	$textentry2->focus();
-#	$textentry2->lose_focus();
-}
 
 
 
@@ -308,8 +951,6 @@ sub search2 #after the search has been made
 	$searchterm = $textentry2->get();
 	chomp ($searchterm);
 
-#!/usr/bin/perl -w
-
 
 
 
@@ -330,7 +971,7 @@ sub search2 #after the search has been made
         $textviewer2->text("\nSearch:");
 
 	my $results = `wget -qO- $searchurl`;
-#	if($TrimSearchResults eq 'true'){$results =~ s/CATEGORY(.*?)\|//mgsi}
+	if($TrimSearchResults eq 'true'){$results =~ s/CATEGORY(.*?)\|//mgsi}
 	if($results =~ /A/gi){my $resultsExist = 'false';}
 	my $factor = 1024000000;
 	my $gb = " GB";
@@ -362,8 +1003,6 @@ sub search2 #after the search has been made
 
 
 
-        $textviewer2->text($results);
-        $textviewer2->draw();
 
 	
 #	$results =~ s/LINK(.*?)\n//msgi;
@@ -486,22 +1125,7 @@ sub down_old{
 }
 
 
-sub clearscreen
-{
 
-	system('clear');
-}
-
-sub quit
-{
-
-	#print "\nQuitting... \n";
-	$cui->leave_curses();
-	ReadMode 0;
-	clearscreen();
-	exit;
-
-}
 
 #Just for reference
 
@@ -521,3 +1145,6 @@ sub quit
 #&maxage={MAX AGE} = OPTIONAL, same as &age (above) here for matching site search vars only
 #&englishonly=1{ENGLISH ONLY} = OPTIONAL, if added the search will only return ENGLISH and UNKNOWN matches
 #&searchin={SEARCH FIELD} = OPTIONAL, (name, subject, weblink) if left blank or not used then search filed is "name"
+
+
+=end GHOSTCODE
